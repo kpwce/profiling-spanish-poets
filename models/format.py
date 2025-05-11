@@ -1,18 +1,23 @@
 """"Formats the data used for training in pre-processing step"""
 from pathlib import Path
 import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split # stratified split for data
 
 def get_text_to_gender():
     df = get_sonnets_with_authors_filtered()
-    return df[['content', 'gender']]
+    # return X train, X test, y train, y test
+    return train_test_split(df['content'], df['gender'], test_size=0.1, stratify=df['gender'], random_state=1)
 
 def get_text_to_period():
     df = get_sonnets_with_authors_filtered()
-    return df[['content', 'normdate']]
+    df = df[['content', 'normdate']]
+    df['normdate'] = df['normdate'].apply(np.floor)
+    return train_test_split(df['content'], df['normdate'], test_size=0.1, stratify=df['normdate'], random_state=1)
 
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
-    return df[['content', 'country-birth']]
+    return train_test_split(df['content'], df['country-birth'], test_size=0.1, stratify=df['country-birth'], random_state=1)
 
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)

@@ -4,10 +4,10 @@ By Alysa Meng
 
 ## Data processing
 
-- [ ] Load in DISCO data (text, authorial metadata)
-- [ ] Extract n-gram features with relevant libraries
-- [ ] Extract rhyme schema with relevant libraries
-- [ ] Split into train, val, test
+- [X] Load in DISCO data (text, authorial metadata)
+- [X] Extract n-gram features with relevant libraries
+- [X] Extract rhyme schema with relevant libraries
+- [X] Split into train, val, test
 
 ## SVM Classification
 
