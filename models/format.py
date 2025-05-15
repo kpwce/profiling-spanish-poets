@@ -2,22 +2,21 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split # stratified split for data
 
 def get_text_to_gender():
     df = get_sonnets_with_authors_filtered()
     # return X train, X test, y train, y test
-    return train_test_split(df['content'], df['gender'], test_size=0.1, stratify=df['gender'], random_state=1)
+    return train_test_split(df, 'gender', test_size=0.1, random_state=1)
 
 def get_text_to_period():
     df = get_sonnets_with_authors_filtered()
     df = df[['content', 'normdate']]
     df['normdate'] = df['normdate'].apply(np.floor)
-    return train_test_split(df['content'], df['normdate'], test_size=0.1, stratify=df['normdate'], random_state=1)
+    return train_test_split(df, 'normdate', test_size=0.1, random_state=1)
 
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
-    return train_test_split(df['content'], df['country-birth'], test_size=0.1, stratify=df['country-birth'], random_state=1)
+    return train_test_split(df, 'country-birth', test_size=0.1, random_state=1)
 
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)
@@ -48,3 +47,32 @@ def get_sonnets_with_authors_filtered():
     all_df = all_df[all_df['aid'].notna() & all_df['normdate'].notna() & all_df['gender'].notna() & all_df['country-birth'].notna()]
 
     return all_df
+
+# sklearn inspired stratified train_test_split function
+def train_test_split(df, stratify_col, test_size=0.1, random_state=None):
+    if stratify_col not in df.columns:
+        raise ValueError(f"'{stratify_col}' is not a column in the DataFrame.")
+    
+    np.random.seed(random_state)
+    df_train_list = []
+    df_test_list = []
+
+    # Group by the stratify column
+    for label, group in df.groupby(stratify_col):
+        n = len(group)
+        if isinstance(test_size, float):
+            n_test = int(np.floor(test_size * n))
+        else:
+            n_test = min(test_size, n)
+        
+        shuffled_indices = np.random.permutation(group.index)
+        test_indices = shuffled_indices[:n_test]
+        train_indices = shuffled_indices[n_test:]
+        
+        df_test_list.append(df.loc[test_indices])
+        df_train_list.append(df.loc[train_indices])
+    
+    df_train = pd.concat(df_train_list).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    df_test = pd.concat(df_test_list).sample(frac=1, random_state=random_state).reset_index(drop=True)
+
+    return df_train, df_test
