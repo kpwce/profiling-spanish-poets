@@ -6,17 +6,17 @@ import numpy as np
 def get_text_to_gender():
     df = get_sonnets_with_authors_filtered()
     # return X train, X test, y train, y test
-    return train_test_split(df, 'gender', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','gender']], 'gender', test_size=0.1, random_state=1)
 
 def get_text_to_period():
     df = get_sonnets_with_authors_filtered()
     df = df[['content', 'normdate']]
     df['normdate'] = df['normdate'].apply(np.floor)
-    return train_test_split(df, 'normdate', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','normdate']], 'normdate', test_size=0.1, random_state=1)
 
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
-    return train_test_split(df, 'country-birth', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','country-birth']], 'country-birth', test_size=0.1, random_state=1)
 
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)

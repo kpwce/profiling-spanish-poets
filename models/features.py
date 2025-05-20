@@ -1,8 +1,21 @@
 """Some basic features for SVM (and maybe LSTM)"""
 from collections import Counter
+from multiprocessing import Pool, cpu_count
+from tqdm import tqdm
 import numpy as np
-import re
+#import pandas as pd
+import regex as re # better re lib
 import libEscansion # parse metrical style en espanol
+
+"""
+# Download spanish model for libEscansion
+import stanza
+print("downloading spanish models")
+stanza.download('es')
+stanza.download(lang="es",package=None,processors={"ner":"ancora"})
+print("downloaded spanish models!")
+
+"""
 
 ########## Linguistic features ##########
 vowel = {'a': 0, 'e': 1, 'i': 2, 'o': 3, 'u': 4}
@@ -12,7 +25,7 @@ def get_metrical_vector(text):
     for line in text:
         feature = scansion_parsing(line)
         feature_vector += feature
-    return np.array(feature_vector)
+    return feature_vector
     
 def scansion_parsing(line):
     verse = libEscansion.VerseMetre(line)
@@ -23,8 +36,8 @@ def scansion_parsing(line):
         'rhyme': verse.rhyme,
         'assonance': verse.asson,
         'rhythm_pattern': verse.rhythm,
-        'rhythm_stressed_count': verse.rhythm.count('+'),  # Count stressed syllables
-        'rhythm_unstressed_count': verse.rhythm.count('-'),  # Count unstressed syllables
+        'rhythm_stressed_count': verse.rhythm.count('+'),  # count stressed syllables
+        'rhythm_unstressed_count': verse.rhythm.count('-'),  # count unstressed syllables
         'ends_in_rhyme': verse.rhyme == verse.asson or verse.rhyme.endswith(verse.asson),  # ending in rhyme
         'last_vowel': verse.nuclei[-1] if verse.nuclei else ''
     }
@@ -39,7 +52,7 @@ def features_to_array(features):
 
     # Encode rhythm pattern as one-hot or numeric encoding
     rhythm_pattern_encoded = [1 if c == '+' else 0 for c in features['rhythm_pattern']]
-
+    rhythm_pattern_encoded = rhythm_pattern_encoded + [0] * (15 - len(rhythm_pattern_encoded)) if len(rhythm_pattern_encoded) < 15 else rhythm_pattern_encoded[:15]
     # Number of vowels in nuclei (optional, could use specific vowel count)
     nuclei_vowels_count = sum(1 for char in features['nuclei'] if char in 'aeiou')
 
@@ -67,7 +80,7 @@ def generate_bigrams(text):
     return bigrams
 
 def text_to_bag_of_words(text, unigram_vocab, bigram_vocab):
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    text = re.sub(r'[^\p{L}\p{N}\s]', '', text)
     unigrams = generate_unigrams(text)
     bigrams = generate_bigrams(text)
 
@@ -88,14 +101,14 @@ def get_top_n_vocab(texts, n=100):
     bigram_counter = Counter()
     
     for text in texts:
-        text = re.sub(r'[^a-zA-Z\s]', '', text)
+        text = re.sub(r'[^\p{L}\p{N}\s]', '', text)
         unigrams = generate_unigrams(text)
         bigrams = generate_bigrams(text)
         unigram_counter.update(unigrams)
         bigram_counter.update(bigrams)
     
     # Get the top N unigrams and bigrams
-    top_unigrams = set(word for word, _ in unigram_counter.most_common(n))
-    top_bigrams = set(bigram for bigram, _ in bigram_counter.most_common(n))
+    top_unigrams = list(word for word, _ in unigram_counter.most_common(n))
+    top_bigrams = list(bigram for bigram, _ in bigram_counter.most_common(n))
     
     return top_unigrams, top_bigrams
