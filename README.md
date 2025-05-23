@@ -11,9 +11,9 @@ By Alysa Meng
 
 ## SVM Classification
 
-- [ ] Build (binary) classifier for gender
-- [ ] Build multiclass classifier for country
-- [ ] Build multiclass classifier for time period
+- [X] Build (binary) classifier for gender
+- [X] Build multiclass classifier for country
+- [X] Build multiclass classifier for time period
 
 ## Bi-LSTM
 
@@ -22,13 +22,17 @@ By Alysa Meng
 - [ ] Build classifier for country
 - [ ] Build classifier for time period
 
+## Before BERT
+
+- [ ] Consider alternatives to stratified splits for SVM/Bi-LSTM (e.g., weighting or downsampling)
+
 ## BETO (BERT architecture)
 
 - [ ] Finetune BETO on gender classification
 - [ ] Finetune BETO on country classification
 - [ ] Finetune BETO on time period classification
 
-## Ensemble models (if time)
+## Ensemble models (if time, probably won't have time)
 
 - [ ] Combine SVM with finetuned BETO
 - [ ] Combine Bi-LSTM with finetuned BETO
