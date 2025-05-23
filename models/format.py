@@ -18,6 +18,10 @@ def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
     return train_test_split(df[['content','country-birth']], 'country-birth', test_size=0.1, random_state=1)
 
+def get_countries():
+    df = get_sonnets_with_authors_filtered()
+    return list(df['country-birth'].unique())
+
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)
     """
