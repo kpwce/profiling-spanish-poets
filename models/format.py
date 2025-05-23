@@ -30,7 +30,7 @@ def get_sonnets():
                 if selection.is_dir() and selection.name == 'per-sonnet':
                     for sonnet_file in selection.iterdir():
                         with open(sonnet_file, 'r', encoding='utf-8') as f:
-                            sonnets.append({'aid': sonnet_file.name.split('_')[0][5:], 'content': f.read()})
+                            sonnets.append({'aid': sonnet_file.name.split('_')[0][5:], 'content': f.read().replace('\n\n', '\n')})
 
     return pd.DataFrame(sonnets)
 
