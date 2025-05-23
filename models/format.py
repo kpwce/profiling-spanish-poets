@@ -14,6 +14,10 @@ def get_text_to_period():
     df['normdate'] = df['normdate'].apply(np.floor)
     return train_test_split(df[['content','normdate']], 'normdate', test_size=0.1, random_state=1)
 
+def get_periods():
+    df = get_sonnets_with_authors_filtered()
+    return list(df['normdate'].apply(np.floor).unique())
+
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
     return train_test_split(df[['content','country-birth']], 'country-birth', test_size=0.1, random_state=1)
