@@ -19,13 +19,17 @@ def get_periods():
     df = get_sonnets_with_authors_filtered()
     return list(df['normdate'].apply(np.floor).unique())
 
+# not enough data for these in the dataset, i.e., <10
+exclude = ['Bolivia', 'Brasil', 'Ecuador', 'Haití', 'Honduras', 'Italia','Nicaragua', 'Panamá', 'Paraguay', 'Perú', 'República Dominicana', 'Uruguay']
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
+    df.drop(df[df['country-birth'].isin(exclude)].index, inplace=True)
     return train_test_split(df[['content','country-birth', 'rhyme', 'met']], 'country-birth', test_size=0.1, random_state=1)
 
 def get_countries():
     df = get_sonnets_with_authors_filtered()
-    return list(df['country-birth'].unique())
+    countries = df['country-birth'].unique().tolist()
+    return list(country for country in countries if country not in exclude)
 
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)
