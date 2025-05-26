@@ -2,17 +2,18 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import xml.etree.ElementTree as ET
 
 def get_text_to_gender():
     df = get_sonnets_with_authors_filtered()
     # return X train, X test, y train, y test
-    return train_test_split(df[['content','gender']], 'gender', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','gender', 'rhyme', 'met']], 'gender', test_size=0.1, random_state=1)
 
 def get_text_to_period():
     df = get_sonnets_with_authors_filtered()
-    df = df[['content', 'normdate']]
+    df = df[['content', 'normdate', 'rhyme', 'met']]
     df['normdate'] = df['normdate'].apply(np.floor)
-    return train_test_split(df[['content','normdate']], 'normdate', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','normdate', 'rhyme', 'met']], 'normdate', test_size=0.1, random_state=1)
 
 def get_periods():
     df = get_sonnets_with_authors_filtered()
@@ -20,7 +21,7 @@ def get_periods():
 
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
-    return train_test_split(df[['content','country-birth']], 'country-birth', test_size=0.1, random_state=1)
+    return train_test_split(df[['content','country-birth', 'rhyme', 'met']], 'country-birth', test_size=0.1, random_state=1)
 
 def get_countries():
     df = get_sonnets_with_authors_filtered()
@@ -37,10 +38,28 @@ def get_sonnets():
             for selection in period_path.iterdir():
                 if selection.is_dir() and selection.name == 'per-sonnet':
                     for sonnet_file in selection.iterdir():
+                        # extract rhymes, etc from tei
+                        line_rhyme, line_meter = get_rhyme_meter(period_path.name + '/' + selection.name + '/' + sonnet_file.name)
+                        if line_meter is None or line_rhyme is None:
+                            continue
                         with open(sonnet_file, 'r', encoding='utf-8') as f:
-                            sonnets.append({'aid': sonnet_file.name.split('_')[0][5:], 'content': f.read().replace('\n\n', '\n')})
+                            sonnets.append({'aid': sonnet_file.name.split('_')[0][5:], 'content': f.read().replace('\n\n', '\n'), 'met':line_meter, 'rhyme':line_rhyme})
 
     return pd.DataFrame(sonnets)
+
+namespace = {'tei': 'http://www.tei-c.org/ns/1.0'}
+def get_rhyme_meter(sonnet_file_name):
+    try:
+        tree = ET.parse(f'../data/disco_files/tei/{sonnet_file_name[:-3]}xml')
+    except Exception:
+        return None, None
+    root = tree.getroot()
+    lines = root.findall('.//tei:l', namespace)
+    r = [line.get('rhyme') for line in lines][:14] # cut at 14
+    m = [line.get('met') for line in lines]
+    if any(x is None for x in r) or any(x is None for x in m):
+        return None, None
+    return r, m
 
 def get_authors(cols):
     author_path = '../data/disco_files/author_metadata.tsv'

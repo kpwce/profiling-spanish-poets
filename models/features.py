@@ -103,6 +103,33 @@ def features_to_array(features):
 
     return feature_vector
 
+
+# what the code actually uses at the moment (not the above)
+rhyme_map = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H':8, 'I':9, 'J':10, 'K':11, 'L':12, 'M':13, 'N': 14, '-':-1}
+meter_map = {'-':0, '+': 1}
+def get_rhyme_meter_vectors(rhyme_df, meter_df):
+    out = []
+    for poem_rhyme, poem_meter in zip(rhyme_df.values, meter_df.values):
+        # then pad, up to 4 + 4 + 3 + 3 = 14
+        rhyme_encoding = [rhyme_map[line] for line in poem_rhyme]
+        encoding = [0] * (14 - len(rhyme_encoding))+ rhyme_encoding if len(rhyme_encoding) < 14 else rhyme_encoding[:14]
+
+        # pad with 0s up to 15
+        lc = 0
+        for line in poem_meter:
+            if lc >= 14: # we should have 14 lines, it's a sonnet
+                break
+            meter_encoded = [meter_map[m] for m in line]
+            meter_encoded = meter_encoded + [0] * (15 - len(meter_encoded)) if len(meter_encoded) < 15 else meter_encoded[:15]
+            encoding += meter_encoded
+            lc += 1
+        while lc < 14:
+            # pad with 0s
+            encoding += [0] * 15
+            lc += 1
+        out.append(encoding)
+    return out
+
 ########## Bag of words features ##########
 # Strips out punctuation, for now
 
