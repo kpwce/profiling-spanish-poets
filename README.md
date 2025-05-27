@@ -17,14 +17,14 @@ By Alysa Meng
 
 ## Bi-LSTM
 
-- [ ] Decide on pre-trained word embeddings for Spanish
-- [ ] Build classifier for gender
+- [X] Decide on pre-trained word embeddings for Spanish
+- [X] Build classifier for gender
 - [ ] Build classifier for country
 - [ ] Build classifier for time period
 
 ## Before BERT
 
-- [ ] Consider alternatives to stratified splits for SVM/Bi-LSTM (e.g., weighting or downsampling)
+- [X] Consider alternatives to stratified splits for SVM/Bi-LSTM (e.g., weighting or downsampling)
 
 ## BETO (BERT architecture)
 

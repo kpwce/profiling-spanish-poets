@@ -1,92 +1,74 @@
 import torch
-from torch import nn
-from torch.autograd import Variable
-import torch.optim as optim
-# maybe import matplotlib .pyplot as plt
-# maybe import pickle later for pre-trained embeddings?
-
-UNK = '<UNK>' 
-START_TAG = '--START--'
-END_TAG = '--END--'
-
-def to_scalar(var):
-    # returns a python float
-    return var.view(-1).data.tolist()
-
-def prepare_sequence(seq, to_ix):
-    idxs = [to_ix[w] if w in to_ix else to_ix[UNK] for w in seq]
-    tensor = torch.LongTensor(idxs)
-    return Variable(tensor)
-
-def argmax(vec):
-    # return the argmax as a python int
-    _, idx = torch.max(vec, 1)
-    return to_scalar(idx)
-
-def log_sum_exp(vec):
-    # calculates log_sum_exp in a stable way
-    max_score = vec[0][argmax(vec)]
-    max_score_broadcast = max_score.view(1, -1).expand(1, vec.size()[1])
-    return (max_score + torch.log(torch.sum(torch.exp(vec - max_score_broadcast))))
+import torch.nn as nn
+import numpy as np
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class BiLSTM(nn.Module):
-    """
-    BiLSTM classifier
-    """
-    def __init__(self, vocab_size, category_to_ix, embedding_dim, hidden_dim, embeddings=None):
+    """Implement a Bi-LSTM model with attention."""
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, pad_idx, embeddings=None):
         super(BiLSTM, self).__init__()
         
-        self.embedding_dim = embedding_dim
-        self.hidden_dim = hidden_dim
-        self.vocab_size = vocab_size
-        self.category_to_ix = category_to_ix
-        self.ix_to_tag = {v:k for k,v in category_to_ix.items()}
-
-        # embedding variable
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
-
+        # use word embeddings?
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+        self.pad_idx = pad_idx
         if embeddings is not None:
-            self.word_embeds.weight.data.copy_(torch.from_numpy(embeddings))
+            self.embedding.weight.data.copy_(torch.from_numpy(embeddings))
 
-        # lstm layer mapping the embeddings of the word into the hidden state
-        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim//2, num_layers=1,bidirectional=True)
+        # bi-directional lstm
+        self.lstm = nn.LSTM(input_size=embedding_dim,
+                            hidden_size=hidden_dim // 2,
+                            num_layers=1,
+                            bidirectional=True,
+                            batch_first=True)
 
-        # mapping the output of the LSTM into tag space, fully connected layer
-        self.hidden2out = nn.Linear(in_features=hidden_dim, out_features=self.tagset_size, bias=True)
+        self.attn = nn.Linear(hidden_dim, 1) # an attention layer
+        self.classifier = nn.Linear(hidden_dim, num_classes)
 
-        self.hidden = (Variable(torch.randn(2, 1, self.hidden_dim // 2)),
-                Variable(torch.randn(2, 1, self.hidden_dim // 2)))
-
-    def forward(self, poem):
+    def forward(self, input_data, lengths):
         """
-        The function obtain the scores for poem.
-        Input:
-        sentence: a sequence of ids for each word in the sentence
-        Make sure to reshape the embeddings of the words before sending them to the BiLSTM. 
-        The axes semantics are: seq_len, mini_batch, embedding_dim
-        Output: 
-        returns lstm_feats: scores for each tag for each token in the sentence.
+        input_data: (n, seq_len)
         """
-        self.hidden = (Variable(torch.randn(2, 1, self.hidden_dim // 2)),
-                Variable(torch.randn(2, 1, self.hidden_dim // 2)))
-        
-        embed = self.word_embeds(poem)
-        embed_format = embed.view(len(poem), -1, self.embedding_dim)
+        embedded = self.embedding(input_data)
 
-        output, (h_n, c_n) = self.lstm(embed_format, self.hidden)
-        output = self.hidden2category(output.view(len(poem), self.hidden_dim))
+        packed = pack_padded_sequence(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        packed_output, c = self.lstm(packed)
+        fixed_output, c = pad_packed_sequence(packed_output, batch_first=True)
 
-        return output
+        attn_scores = self.attn(fixed_output).squeeze(-1)
 
-    def predict(self, poem):
-        """
-        Input:
-            text for a poem
-        Outputs:
-            predicts the class with the maximum probability
-        """
-        lstm_feats = self.forward(poem)
-        softmax_layer = torch.nn.Softmax(dim=1)
-        probs = softmax_layer(lstm_feats)
-        idx = argmax(probs)
-        return self.ix_to_category[idx[0]]
+        # Mask attention to ignore <PAD> positions
+        attn_scores[input_data == self.pad_idx] = -1e10 # then softmax sends this to 0ish
+        attn_weights = torch.softmax(attn_scores, dim=1).unsqueeze(2)
+
+        attn_out = torch.sum(attn_weights * fixed_output, dim=1)
+        out = self.classifier(attn_out)
+
+        return out
+
+
+# PRE-TRAINED WORD VECTOR CODE, Glove embeddings for Spanish
+  
+def load_vec_file(path, vocab_set, dim):
+    embeddings = {}
+    with open(path, 'r', encoding='utf8') as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) != dim + 1:
+                continue  # skip malformed lines
+            word = parts[0]
+            if vocab_set is None or word in vocab_set:
+                vec = np.array(parts[1:], dtype=np.float32)
+                embeddings[word] = vec
+    return embeddings
+
+def build_embed_matrix(word_to_ix, path, embedding_dim):
+    vocab_size = len(word_to_ix)
+    embedding_matrix = np.zeros((vocab_size, embedding_dim))
+    glove = load_vec_file(path, vocab_set=word_to_ix.keys(), dim=300)
+    for word, idx in word_to_ix.items():
+        vector = glove.get(word)
+        if vector is not None:
+            embedding_matrix[idx] = vector
+        else: # random init
+            embedding_matrix[idx] = np.random.normal(scale=0.6, size=(embedding_dim,))
+    return embedding_matrix
