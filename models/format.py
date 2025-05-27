@@ -9,27 +9,35 @@ def get_text_to_gender():
     # return X train, X test, y train, y test
     return train_test_split(df[['content','gender', 'rhyme', 'met']], 'gender', test_size=0.1, random_state=1)
 
+exclude_period = [20] # one guy was born in the 20th century
 def get_text_to_period():
     df = get_sonnets_with_authors_filtered()
     df = df[['content', 'normdate', 'rhyme', 'met']]
     df['normdate'] = df['normdate'].apply(np.floor)
+    df.drop(df[df['normdate'].isin(exclude_period)].index, inplace=True)
+    # take the 14 and round to 15th century
+    df['normdate'] = df['normdate'].replace(14.0, 15.0)
     return train_test_split(df[['content','normdate', 'rhyme', 'met']], 'normdate', test_size=0.1, random_state=1)
 
 def get_periods():
     df = get_sonnets_with_authors_filtered()
-    return list(df['normdate'].apply(np.floor).unique())
+    df['normdate'] = df['normdate'].apply(np.floor)
+    df['normdate'] = df['normdate'].replace(14.0, 15.0)
+    unique = df['normdate'].unique()
+    unique.sort()
+    return [p for p in unique.tolist() if p not in exclude_period]
 
 # not enough data for these in the dataset, i.e., <10
-exclude = ['Bolivia', 'Brasil', 'Ecuador', 'Haití', 'Honduras', 'Italia','Nicaragua', 'Panamá', 'Paraguay', 'Perú', 'República Dominicana', 'Uruguay']
+exclude_country = ['Bolivia', 'Brasil', 'Ecuador', 'Haití', 'Honduras', 'Italia','Nicaragua', 'Panamá', 'Paraguay', 'Perú', 'República Dominicana', 'Uruguay']
 def get_text_to_country_of_origin():
     df = get_sonnets_with_authors_filtered()
-    df.drop(df[df['country-birth'].isin(exclude)].index, inplace=True)
+    df.drop(df[df['country-birth'].isin(exclude_country)].index, inplace=True)
     return train_test_split(df[['content','country-birth', 'rhyme', 'met']], 'country-birth', test_size=0.1, random_state=1)
 
 def get_countries():
     df = get_sonnets_with_authors_filtered()
     countries = df['country-birth'].unique().tolist()
-    return list(country for country in countries if country not in exclude)
+    return list(country for country in countries if country not in exclude_country)
 
 def get_sonnets():
     """"Returns dataframe of sonnets with cols aid (to index author) and content (text of poem)
