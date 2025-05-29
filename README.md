@@ -19,8 +19,8 @@ By Alysa Meng
 
 - [X] Decide on pre-trained word embeddings for Spanish
 - [X] Build classifier for gender
-- [ ] Build classifier for country
-- [ ] Build classifier for time period
+- [X] Build classifier for country
+- [X] Build classifier for time period
 
 ## Before BERT
 
