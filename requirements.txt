@@ -1,0 +1,11 @@
+fonemas==2.1.0
+libEscansion==1.1.0
+libEscansion==1.1.0
+numpy==2.3.1
+pandas==2.3.0
+pyverse==1.1.0
+regex==2024.11.6
+silabeador==1.2.1
+torch==2.2.2
+tqdm==4.67.1
+transformers==4.52.4
